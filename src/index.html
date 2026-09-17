@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 课表生成器</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div><h1>AI 课表生成器</h1><p>自选模型 · 固定 JSON · Markdown 导出</p></div>
+    <button id="save" disabled>保存 MD</button>
+  </header>
+  <main>
+    <form id="generator">
+      <h2>AI 服务</h2>
+      <div class="grid two">
+        <label>服务商<select id="provider"></select></label>
+        <label>模型<input id="model" required /></label>
+      </div>
+      <label>API 地址<input id="baseUrl" type="url" required /></label>
+      <label>API Key<input id="apiKey" type="password" autocomplete="off" required /></label>
+
+      <h2>学习要求</h2>
+      <div class="grid two">
+        <label>年级/阶段<input id="audience" value="大学一年级" required /></label>
+        <label>学科<input id="subject" value="数学" required /></label>
+      </div>
+      <label>学习目标<textarea id="goal" rows="2" required>掌握大一微积分和线性代数核心内容，能够独立完成典型计算题。</textarea></label>
+      <div class="grid two">
+        <label>开始日期<input id="startDate" type="date" required /></label>
+        <label>结束日期<input id="endDate" type="date" required /></label>
+      </div>
+      <label>可用时段<input id="timeSlots" value="周一 10:10，周二 16:00，周三 14:10，周四 10:10，周五 10:10" required /></label>
+      <label>其他限制<textarea id="constraints" rows="2">周末不学习；每次 60 分钟；课程由浅入深。</textarea></label>
+
+      <h2>避开已有课程</h2>
+      <div class="sourceRow">
+        <button type="button" id="selectTimetable">选择图片/PDF</button>
+        <button type="button" id="analyze" disabled>视觉识别</button>
+        <span id="sourceStatus">未选择</span>
+      </div>
+      <div id="occupied" class="occupied" hidden></div>
+
+      <button id="generate" class="primary" type="submit">生成课表</button>
+      <p id="status" role="status"></p>
+    </form>
+
+    <section class="output">
+      <div class="outputHead">
+        <h2>生成结果</h2>
+        <div class="segments" role="tablist">
+          <button id="showMarkdown" class="selected" type="button">Markdown</button>
+          <button id="showJson" type="button">JSON</button>
+        </div>
+      </div>
+      <pre id="preview">等待生成...</pre>
+    </section>
+  </main>
+  <script src="renderer.js"></script>
+</body>
+</html>

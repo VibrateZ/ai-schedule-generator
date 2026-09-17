@@ -1,0 +1,28 @@
+{
+  "name": "ai-schedule-generator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "使用自选 AI 服务生成可校验、可导出的 Markdown 学习课表",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/schedule.test.js",
+    "package": "electron-builder --win portable"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.83",
+    "pdfjs-dist": "5.4.149"
+  },
+  "devDependencies": {
+    "electron": "^44.4.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "local.ai.schedule.generator",
+    "productName": "AI课表生成器",
+    "electronDist": "node_modules/electron/dist",
+    "compression": "store",
+    "directories": { "output": "release" },
+    "win": { "target": ["portable"], "signAndEditExecutable": false }
+  }
+}

@@ -1,0 +1,24 @@
+:root { font-family: "Microsoft YaHei UI", system-ui, sans-serif; color: #19252c; background: #f4f6f7; }
+* { box-sizing: border-box; }
+body { margin: 0; height: 100vh; overflow: hidden; }
+header { height: 76px; padding: 12px 22px; display: flex; align-items: center; justify-content: space-between; background: #fff; border-bottom: 1px solid #d5dce0; }
+h1 { margin: 0; font-size: 22px; } header p { margin: 4px 0 0; color: #60717b; font-size: 13px; }
+button, input, select, textarea { font: inherit; letter-spacing: 0; }
+button { min-height: 34px; padding: 6px 11px; border: 1px solid #b7c2c8; border-radius: 5px; background: #fff; cursor: pointer; color: #1c2a32; }
+button:disabled { opacity: .5; cursor: default; }
+.primary, header > button { color: #fff; background: #126b65; border-color: #126b65; }
+main { display: grid; grid-template-columns: minmax(440px, 520px) 1fr; height: calc(100vh - 76px); }
+form { overflow-y: auto; padding: 20px 24px 32px; border-right: 1px solid #d5dce0; background: #fff; }
+h2 { margin: 18px 0 10px; font-size: 15px; } form h2:first-child { margin-top: 0; }
+label { display: grid; gap: 5px; margin-bottom: 11px; color: #4b5d67; font-size: 12px; }
+input, select, textarea { width: 100%; border: 1px solid #b9c5cb; border-radius: 4px; padding: 8px 9px; color: #172229; background: #fff; }
+textarea { resize: vertical; line-height: 1.45; }
+.grid { display: grid; gap: 10px; } .grid.two { grid-template-columns: 1fr 1fr; }
+.sourceRow { display: flex; align-items: center; gap: 8px; } #sourceStatus { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #5a6b75; font-size: 12px; }
+.occupied { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; } .occupied span { padding: 4px 6px; border: 1px solid #d4a55d; border-radius: 4px; background: #fff7e8; font-size: 11px; }
+#generate { width: 100%; margin-top: 18px; } #status { min-height: 20px; margin: 9px 0 0; color: #3f6c68; font-size: 12px; } #status.error { color: #b3352d; }
+.output { min-width: 0; display: flex; flex-direction: column; background: #f4f6f7; }
+.outputHead { height: 54px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #d5dce0; } .outputHead h2 { margin: 0; }
+.segments { display: flex; } .segments button { border-radius: 0; } .segments button:first-child { border-radius: 4px 0 0 4px; } .segments button:last-child { border-radius: 0 4px 4px 0; border-left: 0; } .segments .selected { background: #dce9e7; color: #0d5f59; }
+#preview { flex: 1; overflow: auto; margin: 0; padding: 20px; white-space: pre-wrap; word-break: break-word; font: 13px/1.55 Consolas, "Microsoft YaHei UI", monospace; }
+@media (max-width: 980px) { main { grid-template-columns: 430px 1fr; } }
