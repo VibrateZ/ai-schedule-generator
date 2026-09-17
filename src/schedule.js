@@ -95,6 +95,42 @@ function enrichResources(schedule) {
   return schedule;
 }
 
+function decodeXml(value) {
+  return value
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'");
+}
+
+async function searchResources(schedule, fetchImpl = fetch) {
+  await Promise.all(schedule.lessons.map(async (lesson) => {
+    const query = encodeURIComponent(`"${lesson.topic}" ${schedule.subject} 教程 讲义 视频`);
+    try {
+      const response = await fetchImpl(`https://cn.bing.com/search?format=rss&q=${query}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 CourseScheduleGenerator/0.1' },
+      });
+      if (!response.ok) return;
+      const xml = await response.text();
+      const items = [...xml.matchAll(/<item>[\s\S]*?<title>([\s\S]*?)<\/title>[\s\S]*?<link>([\s\S]*?)<\/link>[\s\S]*?<\/item>/g)]
+        .map((match) => ({ title: decodeXml(match[1]).replace(/<!\[CDATA\[|]]>/g, '').trim(), url: decodeXml(match[2]).trim(), type: 'search-result' }))
+        .filter((item) => isWebUrl(item.url) && !/(bing\.com\/search|baike\.baidu\.com|hao86\.com|zhidao\.baidu\.com)/.test(item.url))
+        .sort((a, b) => {
+          const score = (item) => /icourse163\.org|bilibili\.com|smartedu\.cn|edu\.cn/.test(item.url) ? 1 : 0;
+          return score(b) - score(a);
+        })
+        .slice(0, 2);
+      items.reverse().forEach((item) => {
+        if (!lesson.resources.some((resource) => resource.url === item.url)) lesson.resources.unshift(item);
+      });
+    } catch {
+      // The deterministic search links added by enrichResources remain available offline.
+    }
+  }));
+  return schedule;
+}
+
 function markdownCell(value) {
   return String(value || '').replaceAll('|', '｜').replaceAll('\n', ' ');
 }
@@ -118,4 +154,4 @@ function toMarkdown(schedule) {
   return `${lines.join('\n')}\n`;
 }
 
-module.exports = { enrichResources, findConflicts, isWebUrl, toMarkdown, validateSchedule };
+module.exports = { enrichResources, findConflicts, isWebUrl, searchResources, toMarkdown, validateSchedule };

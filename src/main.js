@@ -1,7 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const { enrichResources, findConflicts, toMarkdown, validateSchedule } = require('./schedule');
+const { enrichResources, findConflicts, searchResources, toMarkdown, validateSchedule } = require('./schedule');
 const { pdfToImages } = require('./pdf-renderer');
 
 let mainWindow;
@@ -143,7 +143,7 @@ async function callProvider(config, options) {
       { role: 'system', content: '只输出符合用户指定结构的 JSON。不要输出解释或代码围栏。' },
       { role: 'user', content: `${buildPrompt(options)}${conflictText}` },
     ]);
-  const schedule = enrichResources(validateSchedule(parsed));
+  const schedule = await searchResources(enrichResources(validateSchedule(parsed)));
   const conflicts = findConflicts(schedule, options.occupiedSlots);
   if (conflicts.length) {
     throw new Error(`生成结果仍有 ${conflicts.length} 处时间冲突，请重新生成：${conflicts[0].lesson}`);

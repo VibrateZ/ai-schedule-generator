@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { enrichResources, findConflicts, toMarkdown, validateSchedule } = require('../src/schedule');
+const { enrichResources, findConflicts, searchResources, toMarkdown, validateSchedule } = require('../src/schedule');
 
 const schedule = validateSchedule({
   title: '大一数学计划',
@@ -28,4 +28,12 @@ const markdown = toMarkdown(schedule);
 assert.match(markdown, /\| 2026-09-21 \| 周一 \| 10:10 \|/);
 assert.match(markdown, /\[主课\]\(https:\/\/example.com\/course\)/);
 assert.throws(() => validateSchedule({ lessons: [] }), /lessons/);
-console.log('schedule: all tests passed');
+
+const fakeFetch = async () => ({
+  ok: true,
+  text: async () => '<rss><channel><item><title>高质量教程</title><link>https://example.edu/tutorial</link></item></channel></rss>',
+});
+searchResources(schedule, fakeFetch).then(() => {
+  assert.ok(schedule.lessons[0].resources.some((item) => item.url === 'https://example.edu/tutorial'));
+  console.log('schedule: all tests passed');
+});
