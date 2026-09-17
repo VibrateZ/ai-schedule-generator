@@ -1,6 +1,6 @@
 {
   "name": "ai-schedule-generator",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "使用自选 AI 服务生成可校验、可导出的 Markdown 学习课表",
   "main": "src/main.js",

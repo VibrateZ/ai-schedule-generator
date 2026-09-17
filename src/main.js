@@ -1,7 +1,16 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const { enrichResources, findConflicts, searchResources, toMarkdown, validateSchedule } = require('./schedule');
+const { requestChat } = require('./provider-client');
+const {
+  enrichResources,
+  findConflicts,
+  searchResources,
+  toMarkdown,
+  validateOccupiedSlots,
+  validateSchedule,
+  validateScheduleConstraints,
+} = require('./schedule');
 const { pdfToImages } = require('./pdf-renderer');
 
 let mainWindow;
@@ -14,15 +23,6 @@ const providerDefaults = {
   siliconflow: { baseUrl: 'https://api.siliconflow.cn/v1', model: 'Qwen/Qwen3-8B' },
   custom: { baseUrl: '', model: '' },
 };
-
-function endpointFor(baseUrl) {
-  const value = baseUrl.replace(/\/+$/, '');
-  const parsed = new URL(value);
-  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(parsed.hostname))) {
-    throw new Error('API 地址必须使用 HTTPS；本地 localhost 可使用 HTTP');
-  }
-  return value.endsWith('/chat/completions') ? value : `${value}/chat/completions`;
-}
 
 function buildPrompt(options) {
   return `你是严谨的大学课程设计师。为以下用户生成学习课表，并仅输出一个 JSON 对象，不要使用 Markdown 代码块。
@@ -59,51 +59,6 @@ function buildPrompt(options) {
 要求：日期与星期必须一致；只在可用时段排课；内容由浅入深；每次任务能在一次学习时段完成。优先提供中文、免费、信息密度高、来源可靠的资源；不确定具体深层链接时可省略该资源，不要编造 URL。`;
 }
 
-function extractJson(content) {
-  const trimmed = content.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    const start = trimmed.indexOf('{');
-    const end = trimmed.lastIndexOf('}');
-    if (start >= 0 && end > start) return JSON.parse(trimmed.slice(start, end + 1));
-    throw new Error('AI 未返回可解析的 JSON');
-  }
-}
-
-async function requestChat(config, messages, temperature = 0.2) {
-  const endpoint = endpointFor(config.baseUrl);
-  if (!config.apiKey) throw new Error('请输入 API Key');
-  if (!config.model) throw new Error('请输入模型名称');
-  const body = {
-    model: config.model,
-    messages,
-    temperature,
-    response_format: { type: 'json_object' },
-  };
-  let response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok && [400, 422].includes(response.status)) {
-    delete body.response_format;
-    response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-  }
-  if (!response.ok) {
-    const detail = (await response.text()).slice(0, 500);
-    throw new Error(`API 请求失败（${response.status}）：${detail}`);
-  }
-  const payload = await response.json();
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content) throw new Error('API 响应中缺少 choices[0].message.content');
-  return extractJson(content);
-}
-
 async function loadTimetableSource(filePath) {
   if (fs.statSync(filePath).size > 20 * 1024 * 1024) throw new Error('课表文件不能超过 20 MB');
   const extension = path.extname(filePath).toLowerCase();
@@ -128,23 +83,23 @@ async function analyzeTimetable(config) {
     { role: 'system', content: '你是课表视觉识别器，只输出严格 JSON。' },
     { role: 'user', content },
   ], 0);
-  const occupiedSlots = Array.isArray(result.occupiedSlots)
-    ? result.occupiedSlots.filter((slot) => /周[一二三四五六日]/.test(slot.weekday || '') && /^\d{2}:\d{2}$/.test(slot.startTime || '') && /^\d{2}:\d{2}$/.test(slot.endTime || ''))
-    : [];
+  const occupiedSlots = validateOccupiedSlots(result.occupiedSlots);
   if (!occupiedSlots.length) throw new Error('视觉模型未识别到有效的已占用时段');
   return occupiedSlots;
 }
 
 async function callProvider(config, options) {
-  const conflictText = options.occupiedSlots?.length
-    ? `\n必须避开以下固定课程/不可用时段，不得有任何重叠：\n${JSON.stringify(options.occupiedSlots, null, 2)}`
+  const occupiedSlots = validateOccupiedSlots(options.occupiedSlots);
+  const conflictText = occupiedSlots.length
+    ? `\n必须避开以下固定课程/不可用时段，不得有任何重叠：\n${JSON.stringify(occupiedSlots, null, 2)}`
     : '';
   const parsed = await requestChat(config, [
       { role: 'system', content: '只输出符合用户指定结构的 JSON。不要输出解释或代码围栏。' },
       { role: 'user', content: `${buildPrompt(options)}${conflictText}` },
     ]);
-  const schedule = await searchResources(enrichResources(validateSchedule(parsed)));
-  const conflicts = findConflicts(schedule, options.occupiedSlots);
+  const schedule = validateScheduleConstraints(validateSchedule(parsed), options);
+  await searchResources(enrichResources(schedule));
+  const conflicts = findConflicts(schedule, occupiedSlots);
   if (conflicts.length) {
     throw new Error(`生成结果仍有 ${conflicts.length} 处时间冲突，请重新生成：${conflicts[0].lesson}`);
   }
