@@ -57,4 +57,4 @@ npm start
 npm run package
 ```
 
-便携版输出到 `release/AI课表生成器 0.1.0.exe`。
+便携版输出到 `release/ai-schedule-generator-0.1.0.exe`。
